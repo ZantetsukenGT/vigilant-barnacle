@@ -1,0 +1,200 @@
+package uweb.language;
+
+import java_cup.runtime.*;
+import app.tree.*;
+import java.util.LinkedList;
+
+//Recuperacion de Errores
+
+parser code
+{:
+
+    public StructCompi AST;
+    
+    public LinkedList<ErrorAnalisis> errores = new LinkedList<>();
+
+    public void syntax_error(Symbol s)
+    {
+        ErrorAnalisis e = new ErrorAnalisis("Error Sintáctico",s.value.toString(),"no se esperaba este símbolo",s.left,s.right);
+        errores.add(e);
+    }
+
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception
+    {
+        ErrorAnalisis e = new ErrorAnalisis("Error Sintáctico Irrecuperable","","no se esperaba este símbolo: " + symbl_name_from_id(s.sym),s.left,s.right);
+        errores.add(e);
+    }
+:}
+
+terminal String RCOMPI,RCABECERA,RTITULO,RCUERPO,RPARRAFO,RSALTO,RTABLA,RIMAGEN,RTEXTOA,RTEXTOB,RBOTON,RESPACIO;
+terminal String RHS,RFONDO,RALINEACION,RCOLUMNAC,RCOLUMNA,RFILA,RPATH,RALTO,RANCHO,RID,RTEXTO,RBORDE,ECHO;
+terminal String RTRUE,RFALSE,RIF,RELSE,MREPETIR,MCREARIMAGEN,MGETPATH,MGETANCHO,MGETALTO,MSETPATH,MSETANCHO,MSETALTO;
+terminal String MINSERTAR,MCREARPARRAFO,MGETALINEACION,MGETCONTENIDO,MSETALINEACION,MSETCONTENIDO,MCREARTEXTOA;
+terminal String MCREARTEXTOB,MCREARTABLA,MSETBORDE,MCREARBOTON,MSETTEXTO,MGETTEXTO,MCLICKBOTON,ENDHS,DOLAR,NUMERAL;
+terminal String LLAVEA,LLAVEC,PARENTA,PARENTC,CORCHETEA,CORCHETEC,PYCOMA,PUNTO,COMA,OR,AND,NOT,MENORQUE,MAYORQUE;
+terminal String MENORIGUALQUE,MAYORIGUALQUE,DISTINTOQUE,IGUALQUE,SIGNOIGUAL,SIGNOMAS,SIGNOMENOS,SIGNOPOR,SIGNODIVIDIDO;
+terminal String CADENA,IDENTIFICADOR,ENTERO,DECIMAL;
+
+non terminal inicio;
+non terminal LinkedList<Instruccion> instrucciones, instruccionesHS;
+non terminal Instruccion instruccion, instruccionHS;
+non terminal LinkedList<LinkedList<Operacion>> parametros_tabla;
+non terminal LinkedList<Operacion> parametros;
+non terminal LinkedList<Atributo> atributos_struct;
+non terminal Operacion expresion;
+non terminal Atributo atributo_struct;
+
+precedence left COMA, PUNTO;
+precedence right SIGNOIGUAL;
+precedence left OR;
+precedence left AND;
+precedence right NOT;
+precedence left IGUALQUE,DISTINTOQUE,MAYORQUE,MENORQUE,MAYORIGUALQUE,MENORIGUALQUE;
+precedence left SIGNOMAS,SIGNOMENOS;
+precedence left SIGNODIVIDIDO,SIGNOPOR;
+
+start with inicio;
+
+inicio ::= 
+    MENORQUE RCOMPI MAYORQUE MENORQUE SIGNODIVIDIDO RCOMPI MAYORQUE                         {:AST = new StructCompi(); AST.setTipo(Struct.Tipo.COMPI);:}
+ |  MENORQUE RCOMPI MAYORQUE instrucciones:arbol MENORQUE SIGNODIVIDIDO RCOMPI MAYORQUE     {:AST = new StructCompi(arbol); AST.setTipo(Struct.Tipo.COMPI);:}
+;
+
+instrucciones ::=
+    instrucciones:arbol instruccion:i                               {:RESULT = arbol; RESULT.add(i);:}
+ |  instruccion:i                                                   {:RESULT = new LinkedList<>(); RESULT.add(i);:}
+;
+
+instruccion ::=
+    MENORQUE RCABECERA MAYORQUE MENORQUE SIGNODIVIDIDO RCABECERA MAYORQUE                                           {:Struct st; RESULT = st = new StructCabecera(); st.setTipo(Struct.Tipo.CABECERA);:}
+ |  MENORQUE RCABECERA MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RCABECERA MAYORQUE                         {:Struct st; RESULT = st = new StructCabecera(ins); st.setTipo(Struct.Tipo.CABECERA);:}
+ |  MENORQUE RTITULO MAYORQUE MENORQUE SIGNODIVIDIDO RTITULO MAYORQUE                                               {:Struct st; RESULT = st = new StructTitulo(); st.setTipo(Struct.Tipo.TITULO);:}
+ |  MENORQUE RTITULO MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RTITULO MAYORQUE                             {:Struct st; RESULT = st = new StructTitulo(ins); st.setTipo(Struct.Tipo.TITULO);:}
+ |  MENORQUE RCUERPO MAYORQUE MENORQUE SIGNODIVIDIDO RCUERPO MAYORQUE                                               {:Struct st; RESULT = st = new StructCuerpo(); st.setTipo(Struct.Tipo.CUERPO);:}
+ |  MENORQUE RCUERPO MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RCUERPO MAYORQUE                             {:Struct st; RESULT = st = new StructCuerpo(ins); st.setTipo(Struct.Tipo.CUERPO);:}
+ |  MENORQUE RCUERPO atributos_struct:atr MAYORQUE MENORQUE SIGNODIVIDIDO RCUERPO MAYORQUE                          {:Struct st; RESULT = st = new StructCuerpo(atr, null); st.setTipo(Struct.Tipo.CUERPO);:}
+ |  MENORQUE RCUERPO atributos_struct:atr MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RCUERPO MAYORQUE        {:Struct st; RESULT = st = new StructCuerpo(atr, ins); st.setTipo(Struct.Tipo.CUERPO);:}
+ |  MENORQUE RESPACIO MAYORQUE MENORQUE SIGNODIVIDIDO RESPACIO MAYORQUE                                             {:Struct st; RESULT = st = new StructEspacio(); st.setTipo(Struct.Tipo.ESPACIO);:}
+ |  MENORQUE RESPACIO MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RESPACIO MAYORQUE                           {:Struct st; RESULT = st = new StructEspacio(ins); st.setTipo(Struct.Tipo.ESPACIO);:}
+ |  MENORQUE RPARRAFO MAYORQUE MENORQUE SIGNODIVIDIDO RPARRAFO MAYORQUE                                             {:Struct st; RESULT = st = new StructParrafo(); st.setTipo(Struct.Tipo.PARRAFO);:}
+ |  MENORQUE RPARRAFO MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RPARRAFO MAYORQUE                           {:Struct st; RESULT = st = new StructParrafo(ins); st.setTipo(Struct.Tipo.PARRAFO);:}
+ |  MENORQUE RPARRAFO atributos_struct:atr MAYORQUE MENORQUE SIGNODIVIDIDO RPARRAFO MAYORQUE                        {:Struct st; RESULT = st = new StructParrafo(atr, null); st.setTipo(Struct.Tipo.PARRAFO);:}
+ |  MENORQUE RPARRAFO atributos_struct:atr MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RPARRAFO MAYORQUE      {:Struct st; RESULT = st = new StructParrafo(atr, ins); st.setTipo(Struct.Tipo.PARRAFO);:}
+ |  MENORQUE SIGNODIVIDIDO RSALTO MAYORQUE                                                                          {:Struct st; RESULT = st = new StructSalto(); st.setTipo(Struct.Tipo.SALTO);:}
+ |  MENORQUE RTEXTOA MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RTEXTOA MAYORQUE                             {:Struct st; RESULT = st = new StructTextoA(ins); st.setTipo(Struct.Tipo.TEXTOA);:}
+ |  MENORQUE RTEXTOB MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RTEXTOB MAYORQUE                             {:Struct st; RESULT = st = new StructTextoB(ins); st.setTipo(Struct.Tipo.TEXTOB);:}
+ |  MENORQUE RTEXTOA MAYORQUE MENORQUE SIGNODIVIDIDO RTEXTOA MAYORQUE                                               {:Struct st; RESULT = st = new StructTextoA(); st.setTipo(Struct.Tipo.TEXTOA);:}
+ |  MENORQUE RTEXTOB MAYORQUE MENORQUE SIGNODIVIDIDO RTEXTOB MAYORQUE                                               {:Struct st; RESULT = st = new StructTextoB(); st.setTipo(Struct.Tipo.TEXTOB);:}
+ |  MENORQUE RIMAGEN MAYORQUE MENORQUE SIGNODIVIDIDO RIMAGEN MAYORQUE                                               {:Struct st; RESULT = st = new StructImagen(); st.setTipo(Struct.Tipo.IMAGEN);:}
+ |  MENORQUE RIMAGEN atributos_struct:atr MAYORQUE MENORQUE SIGNODIVIDIDO RIMAGEN MAYORQUE                          {:Struct st; RESULT = st = new StructImagen(atr); st.setTipo(Struct.Tipo.IMAGEN);:}
+ |  MENORQUE RBOTON MAYORQUE MENORQUE SIGNODIVIDIDO RBOTON MAYORQUE                                                 {:Struct st; RESULT = st = new StructBoton(); st.setTipo(Struct.Tipo.BOTON);:}
+ |  MENORQUE RBOTON atributos_struct:atr MAYORQUE MENORQUE SIGNODIVIDIDO RBOTON MAYORQUE                            {:Struct st; RESULT = st = new StructBoton(atr); st.setTipo(Struct.Tipo.BOTON);:}
+ |  MENORQUE RTABLA MAYORQUE MENORQUE SIGNODIVIDIDO RTABLA MAYORQUE                                                 {:Struct st; RESULT = st = new StructTabla(); st.setTipo(Struct.Tipo.TABLA);:}
+ |  MENORQUE RTABLA MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RTABLA MAYORQUE                               {:Struct st; RESULT = st = new StructTabla(ins); st.setTipo(Struct.Tipo.TABLA);:}
+ |  MENORQUE RTABLA atributos_struct:atr MAYORQUE MENORQUE SIGNODIVIDIDO RTABLA MAYORQUE                            {:Struct st; RESULT = st = new StructTabla(atr, null); st.setTipo(Struct.Tipo.TABLA);:}
+ |  MENORQUE RTABLA atributos_struct:atr MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RTABLA MAYORQUE          {:Struct st; RESULT = st = new StructTabla(atr, ins); st.setTipo(Struct.Tipo.TABLA);:}
+ |  MENORQUE RFILA MAYORQUE MENORQUE SIGNODIVIDIDO RFILA MAYORQUE                                                   {:Struct st; RESULT = st = new StructFila(); st.setTipo(Struct.Tipo.FILA);:}
+ |  MENORQUE RFILA MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RFILA MAYORQUE                                 {:Struct st; RESULT = st = new StructFila(ins); st.setTipo(Struct.Tipo.FILA);:}
+ |  MENORQUE RCOLUMNA MAYORQUE MENORQUE SIGNODIVIDIDO RCOLUMNA MAYORQUE                                             {:Struct st; RESULT = st = new StructColumna(); st.setTipo(Struct.Tipo.COLUMNA);:}
+ |  MENORQUE RCOLUMNA MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RCOLUMNA MAYORQUE                           {:Struct st; RESULT = st = new StructColumna(ins); st.setTipo(Struct.Tipo.COLUMNA);:}
+ |  MENORQUE RCOLUMNAC MAYORQUE MENORQUE SIGNODIVIDIDO RCOLUMNAC MAYORQUE                                           {:Struct st; RESULT = st = new StructColumnaC(); st.setTipo(Struct.Tipo.COLUMNA);:}
+ |  MENORQUE RCOLUMNAC MAYORQUE instrucciones:ins MENORQUE SIGNODIVIDIDO RCOLUMNAC MAYORQUE                         {:Struct st; RESULT = st = new StructColumnaC(ins); st.setTipo(Struct.Tipo.COLUMNA);:}
+ |  MENORQUE RHS ENDHS                                                                                              {:Struct st; RESULT = st = new CodigoHS(); st.setTipo(Struct.Tipo.HSCRIPT);:}
+ |  MENORQUE RHS instruccionesHS:ins ENDHS                                                                          {:Struct st; RESULT = st = new CodigoHS(ins); st.setTipo(Struct.Tipo.HSCRIPT);:}
+ |  CADENA:txt                                                                                                      {:Struct st; RESULT = st = new TextoLibre(txt); st.setTipo(Struct.Tipo.TEXTOLIBRE);:}
+ |  error MAYORQUE
+ |  error ENDHS
+ |  error
+;
+
+instruccionesHS ::=
+    instruccionesHS:arbol instruccionHS:i                           {:RESULT = arbol; RESULT.add(i);:}
+ |  instruccionHS:i                                                 {:RESULT = new LinkedList<>(); RESULT.add(i);:}
+;
+
+instruccionHS ::=
+    ECHO expresion:op PYCOMA                                                                                    {:RESULT = new Echo(op);:}
+ |  DOLAR IDENTIFICADOR:id SIGNOIGUAL expresion:op PYCOMA                                                       {:RESULT = new Asignacion(id, op);:}
+ |  RIF PARENTA expresion:op PARENTC LLAVEA LLAVEC                                                              {:RESULT = new If(op, null);:}
+ |  RIF PARENTA expresion:op PARENTC LLAVEA instruccionesHS:ins LLAVEC                                          {:RESULT = new If(op, ins);:}
+ |  RIF PARENTA expresion:op PARENTC LLAVEA LLAVEC RELSE LLAVEA LLAVEC                                          {:RESULT = new If(op, null, null);:}
+ |  RIF PARENTA expresion:op PARENTC LLAVEA instruccionesHS:ins1 LLAVEC RELSE LLAVEA LLAVEC                     {:RESULT = new If(op, ins1, null);:}
+ |  RIF PARENTA expresion:op PARENTC LLAVEA LLAVEC RELSE LLAVEA instruccionesHS:ins2 LLAVEC                     {:RESULT = new If(op, null, ins2);:}
+ |  RIF PARENTA expresion:op PARENTC LLAVEA instruccionesHS:ins1 LLAVEC RELSE LLAVEA instruccionesHS:ins2 LLAVEC{:RESULT = new If(op, ins1, ins2);:}
+ |  MREPETIR PARENTA expresion:op PARENTC LLAVEA LLAVEC                                                         {:RESULT = new Repetir(op, null);:}
+ |  MREPETIR PARENTA expresion:op PARENTC LLAVEA instruccionesHS:ins LLAVEC                                     {:RESULT = new Repetir(op, ins);:}
+ |  NUMERAL IDENTIFICADOR:id SIGNOIGUAL MCREARIMAGEN PARENTA parametros:params PARENTC PYCOMA                   {:RESULT = new Asignacion(id, new Operacion(new Imagen(params), Operacion.Tipo.IMAGEN));:}
+ |  NUMERAL IDENTIFICADOR:id SIGNOIGUAL MCREARPARRAFO PARENTA parametros:params PARENTC PYCOMA                  {:RESULT = new Asignacion(id, new Operacion(new Parrafo(params), Operacion.Tipo.PARRAFO));:}
+ |  NUMERAL IDENTIFICADOR:id SIGNOIGUAL MCREARTEXTOA PARENTA parametros:params PARENTC PYCOMA                   {:RESULT = new Asignacion(id, new Operacion(new TextoA(params), Operacion.Tipo.TEXTOA));:}
+ |  NUMERAL IDENTIFICADOR:id SIGNOIGUAL MCREARTEXTOB PARENTA parametros:params PARENTC PYCOMA                   {:RESULT = new Asignacion(id, new Operacion(new TextoB(params), Operacion.Tipo.TEXTOB));:}
+ |  NUMERAL IDENTIFICADOR:id SIGNOIGUAL MCREARTABLA PARENTA parametros_tabla:params PARENTC PYCOMA              {:RESULT = new Asignacion(id, new Operacion(new Tabla(params), Operacion.Tipo.TABLA));:}
+ |  NUMERAL IDENTIFICADOR:id SIGNOIGUAL MCREARBOTON PARENTA parametros:params PARENTC PYCOMA                    {:RESULT = new Asignacion(id, new Operacion(new Boton(params), Operacion.Tipo.BOTON));:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MSETANCHO PARENTA expresion:op PARENTC PYCOMA                                {:RESULT = new Asignacion(id, op, Asignacion.Tipo.SETANCHO);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MSETALTO PARENTA expresion:op PARENTC PYCOMA                                 {:RESULT = new Asignacion(id, op, Asignacion.Tipo.SETALTO);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MSETPATH PARENTA expresion:op PARENTC PYCOMA                                 {:RESULT = new Asignacion(id, op, Asignacion.Tipo.SETPATH);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MSETALINEACION PARENTA expresion:op PARENTC PYCOMA                           {:RESULT = new Asignacion(id, op, Asignacion.Tipo.SETALINEACION);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MSETCONTENIDO PARENTA expresion:op PARENTC PYCOMA                            {:RESULT = new Asignacion(id, op, Asignacion.Tipo.SETCONTENIDO);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MSETTEXTO PARENTA expresion:op PARENTC PYCOMA                                {:RESULT = new Asignacion(id, op, Asignacion.Tipo.SETTEXTO);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MSETBORDE PARENTA expresion:op PARENTC PYCOMA                                {:RESULT = new Asignacion(id, op, Asignacion.Tipo.SETBORDE);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MCLICKBOTON PARENTA expresion:op PARENTC PYCOMA                              {:RESULT = new Asignacion(id, op, Asignacion.Tipo.CLICKBOTON);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MINSERTAR PARENTA PARENTC PYCOMA                                             {:RESULT = new Insertar(id);:}
+ |  error PYCOMA
+ |  error LLAVEC
+;
+
+parametros_tabla ::=
+    parametros_tabla:arrs COMA CORCHETEA parametros:arr CORCHETEC   {:RESULT = arrs; RESULT.add(arr);:}
+ |  CORCHETEA parametros:arr CORCHETEC                              {:RESULT = new LinkedList<>(); RESULT.add(arr);:}
+;
+
+parametros ::=
+    parametros:params COMA expresion:op                             {:RESULT = params; RESULT.add(op);:}
+ |  expresion:op                                                    {:RESULT = new LinkedList<>(); RESULT.add(op);:}
+;
+
+atributos_struct ::=
+    atributos_struct:params atributo_struct:op                      {:RESULT = params; RESULT.add(op);:}
+ |  atributo_struct:op                                              {:RESULT = new LinkedList<>(); RESULT.add(op);:}
+;
+
+atributo_struct ::=
+    RFONDO SIGNOIGUAL CADENA:cad                                    {:RESULT = new Atributo(cad, Atributo.Tipo.FONDO);:}
+ |  RALINEACION SIGNOIGUAL CADENA:cad                               {:RESULT = new Atributo(cad, Atributo.Tipo.ALINEACION);:}
+ |  RPATH SIGNOIGUAL CADENA:cad                                     {:RESULT = new Atributo(cad, Atributo.Tipo.PATH);:}
+ |  RALTO SIGNOIGUAL ENTERO:num                                     {:RESULT = new Atributo(Integer.valueOf(num), Atributo.Tipo.ALTO);:}
+ |  RANCHO SIGNOIGUAL ENTERO:num                                    {:RESULT = new Atributo(Integer.valueOf(num), Atributo.Tipo.ANCHO);:}
+ |  RID SIGNOIGUAL CADENA:cad                                       {:RESULT = new Atributo(cad, Atributo.Tipo.ID);:}
+ |  RTEXTO SIGNOIGUAL CADENA:cad                                    {:RESULT = new Atributo(cad, Atributo.Tipo.TEXTO);:}
+ |  RBORDE SIGNOIGUAL RTRUE                                         {:RESULT = new Atributo(true, Atributo.Tipo.BORDE);:}
+ |  RBORDE SIGNOIGUAL RFALSE                                        {:RESULT = new Atributo(false, Atributo.Tipo.BORDE);:}
+;
+
+expresion ::= 
+    expresion:op1 SIGNOMAS       expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.SUMA);:}
+ |  expresion:op1 SIGNOMENOS     expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.RESTA);:}
+ |  expresion:op1 SIGNODIVIDIDO  expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.DIVISION);:}
+ |  expresion:op1 SIGNOPOR       expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.MULTIPLICACION);:}
+ |  expresion:op1 MAYORQUE       expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.MAYORQUE);:}
+ |  expresion:op1 MENORQUE       expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.MENORQUE);:}
+ |  expresion:op1 MAYORIGUALQUE  expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.MAYORIGUALQUE);:}
+ |  expresion:op1 MENORIGUALQUE  expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.MENORIGUALQUE);:}
+ |  expresion:op1 IGUALQUE       expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.IGUALQUE);:}
+ |  expresion:op1 DISTINTOQUE    expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.DISTINTOQUE);:}
+ |  expresion:op1 OR             expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.OR);:}
+ |  expresion:op1 AND            expresion:op2                      {:RESULT = new Operacion(op1, op2, Operacion.Tipo.AND);:}
+ |  expresion:op1 PUNTO expresion:op2                               {:RESULT = new Operacion(op1, op2, Operacion.Tipo.CONCATENACION);:}
+ |  NOT expresion:op                                                {:RESULT = new Operacion(op, Operacion.Tipo.NOT);:}
+ |  PARENTA expresion:op PARENTC                                    {:RESULT = op;:}
+ |  CADENA:cad                                                      {:RESULT = new Operacion(cad, Operacion.Tipo.CADENA);:}
+ |  ENTERO:num                                                      {:RESULT = new Operacion(Integer.valueOf(num), Operacion.Tipo.ENTERO);:}
+ |  DECIMAL:num                                                     {:RESULT = new Operacion(Double.valueOf(num), Operacion.Tipo.DECIMAL);:}
+ |  DOLAR IDENTIFICADOR:id                                          {:RESULT = new Operacion(id, Operacion.Tipo.IDENTIFICADOR);:}
+ |  RTRUE:bool                                                      {:RESULT = new Operacion(Boolean.valueOf(bool), Operacion.Tipo.BOOLEANO);:}
+ |  RFALSE:bool                                                     {:RESULT = new Operacion(Boolean.valueOf(bool), Operacion.Tipo.BOOLEANO);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MGETANCHO PARENTA PARENTC        {:RESULT = new Operacion(id, Operacion.Tipo.GETANCHO);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MGETALTO PARENTA PARENTC         {:RESULT = new Operacion(id, Operacion.Tipo.GETALTO);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MGETPATH PARENTA PARENTC         {:RESULT = new Operacion(id, Operacion.Tipo.GETPATH);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MGETALINEACION PARENTA PARENTC   {:RESULT = new Operacion(id, Operacion.Tipo.GETALINEACION);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MGETCONTENIDO PARENTA PARENTC    {:RESULT = new Operacion(id, Operacion.Tipo.GETCONTENIDO);:}
+ |  NUMERAL IDENTIFICADOR:id PUNTO MGETTEXTO PARENTA PARENTC        {:RESULT = new Operacion(id, Operacion.Tipo.GETTEXTO);:}
+;

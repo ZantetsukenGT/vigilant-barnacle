@@ -1,0 +1,150 @@
+package uweb.language;
+
+import java_cup.runtime.*;
+import java.util.LinkedList;
+
+%%
+
+%public
+%class Lexico
+%cup
+%unicode
+%line
+%column
+%ignorecase
+
+%init{ 
+    yyline = 1;
+%init} 
+
+D = [0-9]
+L = [A-Za-záéíóúÁÉÍÓÚ]
+
+ComentarioSTRUCT = \<\![^\!]*\!\>
+ComentarioHS = (\/\*[^\*]*\*\/)|(\/\/[^\n\r]*)
+
+%state SCRIPTHS
+
+%{  
+    final boolean debug = false;
+    public LinkedList<ErrorAnalisis> errores = new LinkedList<>();
+    public LinkedList<SymbolAnalisis> simbolos = new LinkedList<>();
+
+    private Symbol processSymbol(Symbol t)
+    {
+        if(debug)
+            System.out.println("Tipo: " + sym.terminalNames[t.sym] + ", Lexema: " + t.value.toString() + ", Linea: " + t.left + ", Columna: " + t.right);
+        simbolos.add(new SymbolAnalisis(sym.terminalNames[t.sym], t.value.toString(), "", t.left, t.right));
+        return t;
+    }
+%}
+
+%%
+
+<YYINITIAL>{ComentarioSTRUCT}       {}
+<YYINITIAL>"Compi"                  {return processSymbol(new Symbol(sym.RCOMPI,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Cabecera"               {return processSymbol(new Symbol(sym.RCABECERA,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Titulo"                 {return processSymbol(new Symbol(sym.RTITULO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Cuerpo"                 {return processSymbol(new Symbol(sym.RCUERPO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Parrafo"                {return processSymbol(new Symbol(sym.RPARRAFO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Salto"                  {return processSymbol(new Symbol(sym.RSALTO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Tabla"                  {return processSymbol(new Symbol(sym.RTABLA,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Imagen"                 {return processSymbol(new Symbol(sym.RIMAGEN,yyline,yycolumn,yytext()));}
+<YYINITIAL>"TextoA"                 {return processSymbol(new Symbol(sym.RTEXTOA,yyline,yycolumn,yytext()));}
+<YYINITIAL>"TextoB"                 {return processSymbol(new Symbol(sym.RTEXTOB,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Boton"                  {return processSymbol(new Symbol(sym.RBOTON,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Espacio"                {return processSymbol(new Symbol(sym.RESPACIO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"?HS"                    {yybegin(SCRIPTHS); return processSymbol(new Symbol(sym.RHS,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Fondo"                  {return processSymbol(new Symbol(sym.RFONDO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Alineacion"             {return processSymbol(new Symbol(sym.RALINEACION,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Fila"                   {return processSymbol(new Symbol(sym.RFILA,yyline,yycolumn,yytext()));}
+<YYINITIAL>"ColumnaC"               {return processSymbol(new Symbol(sym.RCOLUMNAC,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Columna"                {return processSymbol(new Symbol(sym.RCOLUMNA,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Path"                   {return processSymbol(new Symbol(sym.RPATH,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Alto"                   {return processSymbol(new Symbol(sym.RALTO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Ancho"                  {return processSymbol(new Symbol(sym.RANCHO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Id"                     {return processSymbol(new Symbol(sym.RID,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Texto"                  {return processSymbol(new Symbol(sym.RTEXTO,yyline,yycolumn,yytext()));}
+<YYINITIAL>"Borde"                  {return processSymbol(new Symbol(sym.RBORDE,yyline,yycolumn,yytext()));}
+<YYINITIAL>"True"                   {return processSymbol(new Symbol(sym.RTRUE,yyline,yycolumn,yytext()));}
+<YYINITIAL>"False"                  {return processSymbol(new Symbol(sym.RFALSE,yyline,yycolumn,yytext()));}
+<YYINITIAL>"<"                      {return processSymbol(new Symbol(sym.MENORQUE,yyline,yycolumn,yytext()));}
+<YYINITIAL>"/"                      {return processSymbol(new Symbol(sym.SIGNODIVIDIDO,yyline,yycolumn,yytext()));}
+<YYINITIAL>">"                      {return processSymbol(new Symbol(sym.MAYORQUE,yyline,yycolumn,yytext()));}
+<YYINITIAL>"="                      {return processSymbol(new Symbol(sym.SIGNOIGUAL,yyline,yycolumn,yytext()));}
+
+<YYINITIAL>(\r\n|\n)                {yycolumn = 1;}
+<YYINITIAL>"\t"                     {yycolumn = 4 - yycolumn%4 + yycolumn - 1;}
+<YYINITIAL>(" ")                    {}
+<YYINITIAL>\"[^\"\r\n]*\"           {return processSymbol(new Symbol(sym.CADENA,yyline,yycolumn,yytext().replaceAll("\"","")));}
+<YYINITIAL>{D}+                     {return processSymbol(new Symbol(sym.ENTERO,yyline,yycolumn,yytext()));}
+
+
+<SCRIPTHS>{ComentarioHS}            {}
+<SCRIPTHS>"Echo"                    {return processSymbol(new Symbol(sym.ECHO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"True"                    {return processSymbol(new Symbol(sym.RTRUE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"False"                   {return processSymbol(new Symbol(sym.RFALSE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"If"                      {return processSymbol(new Symbol(sym.RIF,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"Else"                    {return processSymbol(new Symbol(sym.RELSE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"Repetir"                 {return processSymbol(new Symbol(sym.MREPETIR,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"CrearImagen"             {return processSymbol(new Symbol(sym.MCREARIMAGEN,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"GetPath"                 {return processSymbol(new Symbol(sym.MGETPATH,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"GetAncho"                {return processSymbol(new Symbol(sym.MGETANCHO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"GetAlto"                 {return processSymbol(new Symbol(sym.MGETALTO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"SetPath"                 {return processSymbol(new Symbol(sym.MSETPATH,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"SetAncho"                {return processSymbol(new Symbol(sym.MSETANCHO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"SetAlto"                 {return processSymbol(new Symbol(sym.MSETALTO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"Insertar"                {return processSymbol(new Symbol(sym.MINSERTAR,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"CrearParrafo"            {return processSymbol(new Symbol(sym.MCREARPARRAFO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"GetAlineacion"           {return processSymbol(new Symbol(sym.MGETALINEACION,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"GetContenido"            {return processSymbol(new Symbol(sym.MGETCONTENIDO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"SetAlineacion"           {return processSymbol(new Symbol(sym.MSETALINEACION,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"SetContenido"            {return processSymbol(new Symbol(sym.MSETCONTENIDO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"CrearTextoA"             {return processSymbol(new Symbol(sym.MCREARTEXTOA,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"CrearTextoB"             {return processSymbol(new Symbol(sym.MCREARTEXTOB,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"CrearTabla"              {return processSymbol(new Symbol(sym.MCREARTABLA,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"SetBorde"                {return processSymbol(new Symbol(sym.MSETBORDE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"CrearBoton"              {return processSymbol(new Symbol(sym.MCREARBOTON,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"SetTexto"                {return processSymbol(new Symbol(sym.MSETTEXTO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"GetTexto"                {return processSymbol(new Symbol(sym.MGETTEXTO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"ClickBoton"              {return processSymbol(new Symbol(sym.MCLICKBOTON,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"?>"                      {yybegin(YYINITIAL); return processSymbol(new Symbol(sym.ENDHS,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"$"                       {return processSymbol(new Symbol(sym.DOLAR,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"#"                       {return processSymbol(new Symbol(sym.NUMERAL,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"{"                       {return processSymbol(new Symbol(sym.LLAVEA,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"}"                       {return processSymbol(new Symbol(sym.LLAVEC,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"("                       {return processSymbol(new Symbol(sym.PARENTA,yyline,yycolumn,yytext()));}
+<SCRIPTHS>")"                       {return processSymbol(new Symbol(sym.PARENTC,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"["                       {return processSymbol(new Symbol(sym.CORCHETEA,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"]"                       {return processSymbol(new Symbol(sym.CORCHETEC,yyline,yycolumn,yytext()));}
+<SCRIPTHS>";"                       {return processSymbol(new Symbol(sym.PYCOMA,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"."                       {return processSymbol(new Symbol(sym.PUNTO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>","                       {return processSymbol(new Symbol(sym.COMA,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"||"                      {return processSymbol(new Symbol(sym.OR,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"&&"                      {return processSymbol(new Symbol(sym.AND,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"!"                       {return processSymbol(new Symbol(sym.NOT,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"<"                       {return processSymbol(new Symbol(sym.MENORQUE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>">"                       {return processSymbol(new Symbol(sym.MAYORQUE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"<="                      {return processSymbol(new Symbol(sym.MENORIGUALQUE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>">="                      {return processSymbol(new Symbol(sym.MAYORIGUALQUE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"!="                      {return processSymbol(new Symbol(sym.DISTINTOQUE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"=="                      {return processSymbol(new Symbol(sym.IGUALQUE,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"="                       {return processSymbol(new Symbol(sym.SIGNOIGUAL,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"+"                       {return processSymbol(new Symbol(sym.SIGNOMAS,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"-"                       {return processSymbol(new Symbol(sym.SIGNOMENOS,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"*"                       {return processSymbol(new Symbol(sym.SIGNOPOR,yyline,yycolumn,yytext()));}
+<SCRIPTHS>"/"                       {return processSymbol(new Symbol(sym.SIGNODIVIDIDO,yyline,yycolumn,yytext()));}
+
+<SCRIPTHS>(\r\n|\n)                 {yycolumn = 1;}
+<SCRIPTHS>"\t"                      {yycolumn = 4 - yycolumn%4 + yycolumn - 1;}
+<SCRIPTHS>(" ")                     {}
+<SCRIPTHS>\"[^\"\r\n]*\"            {return processSymbol(new Symbol(sym.CADENA,yyline,yycolumn,yytext().replaceAll("\"","")));}
+<SCRIPTHS>({L}|_)({L}|{D}|_)*       {return processSymbol(new Symbol(sym.IDENTIFICADOR,yyline,yycolumn,yytext()));}
+<SCRIPTHS>{D}+                      {return processSymbol(new Symbol(sym.ENTERO,yyline,yycolumn,yytext()));}
+<SCRIPTHS>{D}+(\.{D}+)?             {return processSymbol(new Symbol(sym.DECIMAL,yyline,yycolumn,yytext()));}
+
+
+.   {
+        ErrorAnalisis nuevo = new ErrorAnalisis("Error Léxico", yytext(), "símbolo no válido", yyline, yycolumn);
+        errores.add(nuevo);
+    }
