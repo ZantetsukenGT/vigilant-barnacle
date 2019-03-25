@@ -8,4 +8,6 @@ Place Manual_Usuario.pdf and Manual_Tecnico.pdf under the same folder as the exe
 
 [example.txt](https://github.com/ZantetsukenGT/vigilant-barnacle/files/3001781/example.txt)
 
-Rename example's extension to .uweb if you want to open it from the IDE, and place resources.zip contents into the "Reportes" folder after it is generated in the same folder as the executable
+Rename example.txt's extension to .uweb if you want to open it from the IDE, and place resources.zip contents into the "Reportes" folder after it is generated in the same folder as the executable
+
+## This is a student project
